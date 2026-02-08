@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthetic Dataset Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .form-container {
+            padding: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        textarea, select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        textarea:focus, select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .domain-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .domain-card {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .domain-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        
+        .domain-card.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .domain-card h3 {
+            color: #667eea;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+        
+        .domain-card p {
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        .params-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .result-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result-container.active {
+            display: block;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .result-header h3 {
+            color: #333;
+        }
+        
+        .download-btn {
+            padding: 8px 16px;
+            width: auto;
+            font-size: 14px;
+        }
+        
+        .result-content {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .result-content pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .error.active {
+            display: block;
+        }
+        
+        .examples {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f4ff;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        
+        .examples h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+        
+        .examples ul {
+            padding-left: 20px;
+        }
+        
+        .examples li {
+            margin-bottom: 5px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Synthetic Dataset Generator</h1>
+            <p>Powered by Llama 3.1 - Generate domain-specific datasets with AI</p>
+        </div>
+        
+        <div class="form-container">
+            <form id="generatorForm">
+                <div class="form-group">
+                    <label for="prompt">Dataset Prompt</label>
+                    <textarea 
+                        id="prompt" 
+                        name="prompt" 
+                        placeholder="Describe the dataset you want to generate. Be specific about the type, format, and content you need..."
+                        required
+                    ></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Domain</label>
+                    <div class="domain-grid" id="domainGrid">
+                        <div class="domain-card" data-domain="airline">
+                            <h3>✈️ Airline</h3>
+                            <p>Flights, bookings, delays</p>
+                        </div>
+                        <div class="domain-card" data-domain="ecommerce">
+                            <h3>🛒 E-Commerce</h3>
+                            <p>Products, orders, reviews</p>
+                        </div>
+                        <div class="domain-card" data-domain="social_media">
+                            <h3>📱 Social Media</h3>
+                            <p>Posts, comments, engagement</p>
+                        </div>
+                        <div class="domain-card" data-domain="healthcare">
+                            <h3>🏥 Healthcare</h3>
+                            <p>Appointments, records</p>
+                        </div>
+                    </div>
+                    <input type="hidden" id="domain" name="domain" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Generation Parameters</label>
+                    <div class="params-row">
+                        <div>
+                            <label for="num_samples">Samples (1-50)</label>
+                            <input type="number" id="num_samples" name="num_samples" value="5" min="1" max="50">
+                        </div>
+                        <div>
+                            <label for="temperature">Temperature (0-2)</label>
+                            <input type="number" id="temperature" name="temperature" value="0.7" min="0" max="2" step="0.1">
+                        </div>
+                        <div>
+                            <label for="max_length">Max Length</label>
+                            <input type="number" id="max_length" name="max_length" value="2048" min="512" max="4096" step="256">
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="examples" class="examples" style="display: none;">
+                    <h4>Example Prompts:</h4>
+                    <ul id="exampleList"></ul>
+                </div>
+                
+                <button type="submit" id="generateBtn">Generate Dataset</button>
+            </form>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Generating your dataset... This may take 30-60 seconds.</p>
+            </div>
+            
+            <div class="error" id="error"></div>
+            
+            <div class="result-container" id="resultContainer">
+                <div class="result-header">
+                    <h3>Generated Dataset</h3>
+                    <button class="download-btn" id="downloadBtn">Download JSON</button>
+                </div>
+                <div class="result-content">
+                    <pre id="resultContent"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        
+        let selectedDomain = null;
+        let currentResult = null;
+        
+        // Domain examples
+        const examples = {
+            airline: [
+                "Generate customer complaints about lost baggage with resolution requests",
+                "Create flight delay notifications with rebooking options",
+                "Generate loyalty program member interactions"
+            ],
+            ecommerce: [
+                "Create product reviews for smartphones with ratings from 1-5 stars",
+                "Generate customer service chats about order tracking",
+                "Create abandoned cart recovery emails"
+            ],
+            social_media: [
+                "Generate viral posts about AI trends with engagement metrics",
+                "Create user profile bios for tech enthusiasts",
+                "Generate comment threads on controversial topics"
+            ],
+            healthcare: [
+                "Create patient-doctor appointment scheduling conversations",
+                "Generate symptom descriptions with diagnosis",
+                "Create prescription refill requests"
+            ]
+        };
+        
+        // Domain selection
+        document.querySelectorAll('.domain-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.domain-card').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedDomain = this.dataset.domain;
+                document.getElementById('domain').value = selectedDomain;
+                
+                // Show examples
+                showExamples(selectedDomain);
+            });
+        });
+        
+        function showExamples(domain) {
+            const examplesDiv = document.getElementById('examples');
+            const exampleList = document.getElementById('exampleList');
+            
+            exampleList.innerHTML = '';
+            examples[domain].forEach(example => {
+                const li = document.createElement('li');
+                li.textContent = example;
+                li.style.cursor = 'pointer';
+                li.addEventListener('click', () => {
+                    document.getElementById('prompt').value = example;
+                });
+                exampleList.appendChild(li);
+            });
+            
+            examplesDiv.style.display = 'block';
+        }
+        
+        // Form submission
+        document.getElementById('generatorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!selectedDomain) {
+                showError('Please select a domain');
+                return;
+            }
+            
+            const formData = {
+                prompt: document.getElementById('prompt').value,
+                domain: selectedDomain,
+                num_samples: parseInt(document.getElementById('num_samples').value),
+                temperature: parseFloat(document.getElementById('temperature').value),
+                max_length: parseInt(document.getElementById('max_length').value)
+            };
+            
+            await generateDataset(formData);
+        });
+        
+        async function generateDataset(data) {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const resultContainer = document.getElementById('resultContainer');
+            const generateBtn = document.getElementById('generateBtn');
+            
+            // Reset UI
+            loading.classList.add('active');
+            error.classList.remove('active');
+            resultContainer.classList.remove('active');
+            generateBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_URL}/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentResult = result.data;
+                    displayResult(result.data);
+                } else {
+                    showError(result.error || 'Generation failed');
+                }
+            } catch (err) {
+                showError(`Network error: ${err.message}. Make sure the API server is running.`);
+            } finally {
+                loading.classList.remove('active');
+                generateBtn.disabled = false;
+            }
+        }
+        
+        function displayResult(data) {
+            const resultContainer = document.getElementById('resultContainer');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultContent.textContent = JSON.stringify(data, null, 2);
+            resultContainer.classList.add('active');
+        }
+        
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.classList.add('active');
+        }
+        
+        // Download button
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            if (currentResult) {
+                const dataStr = JSON.stringify(currentResult, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dataset_${currentResult.metadata.domain}_${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        });
+        
+        // Check API health on load
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_URL}/../health`);
+                const data = await response.json();
+                console.log('API Status:', data);
+            } catch (err) {
+                console.warn('API server not reachable. Make sure to run: python api_server.py');
+            }
+        }
+        
+        checkHealth();
+    </script>
+</body>
+</html>
